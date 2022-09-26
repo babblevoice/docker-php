@@ -15,6 +15,8 @@ If major changes backward compatible is not garanteed.
 
 New feature (for example additional PHP module). Every effort to maintain backwards compatability will be made.
 
+See Dockerfile for the list of added modules.
+
 ## Bug
 
 No new feture - bug fix update.
@@ -25,5 +27,5 @@ This will build x86 and arm. The version number is <phpversion>-<thisbuildversio
 
 ```
 docker buildx prune
-docker buildx build --platform linux/amd64,linux/arm64 -t tinpotnick/php:7.4.30-0.0.1 . --push
+docker buildx build --platform linux/amd64,linux/arm64 -t tinpotnick/php:7.4.30-0.2.0 . --push
 ```

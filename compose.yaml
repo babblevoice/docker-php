@@ -10,9 +10,7 @@ services:
       - ./www:/usr/share/nginx/html:rw
 
   php:
-    image: tinpotnick/php:7.4.30-0.0.1
+    image: tinpotnick/php:7.4.30-0.2.0
     volumes:
-      - ./config/php.ini:/etc/php/php.ini
-      - ./config/php-fpm.conf:/etc/php/php-fpm.conf
       - ./www:/usr/share/nginx/html:rw
 

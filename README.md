@@ -27,5 +27,5 @@ This will build x86 and arm. The version number is <phpversion>-<thisbuildversio
 
 ```
 docker buildx prune
-docker buildx build --platform linux/amd64,linux/arm64 -t tinpotnick/php:7.4.30-0.3.2 . --push
+docker buildx build --platform linux/amd64,linux/arm64 -t tinpotnick/php:7.4.30-0.3.5 . --push
 ```

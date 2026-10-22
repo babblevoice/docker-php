@@ -62,3 +62,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.ourdockertags.outputs.tags }}
           labels: ${{ steps.ourdockertags.outputs.labels }}
+          # PHP is compiled from source, which takes about an hour for arm64
+          # under QEMU; reuse the layers between runs.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true

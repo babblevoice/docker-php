@@ -1,13 +1,20 @@
-# PHP 7.4 is end-of-life, so no official image carries the fix for
-# CVE-2026-109618 and CVE-2026-109619 (php2shell). This stage is the official
-# 7.4.33 image with PHP recompiled from its own signed source plus the PHP
-# security team's backport of the fix, with upstream's configure flags.
+# PHP 7.4 is end-of-life, so no official image carries these security fixes.
+# This stage is the official 7.4.33 image with PHP recompiled from its own
+# signed source, with upstream's configure flags, plus every patch in patches/,
+# applied in file-name order:
 #
-# The patch is php-src commit 712e60f9edfd03f0960fc4fc3c2c375f42b90aa2 (branch
-# PHP-7.4-CVE-2026-109618-109619), exported with git format-patch. It changes
-# inline code in Zend headers (HT_HASH_RESET, the zend_multiply.h overflow
-# checks), so every extension is built on this stage, against those headers,
-# rather than taken from Alpine's php7-* packages, built for Alpine's own PHP.
+# - php-7.4-CVE-2026-109618-109619.patch (php2shell): the PHP security team's
+#   own 7.4 backport, php-src commit 712e60f9edfd03f0960fc4fc3c2c375f42b90aa2
+#   (branch PHP-7.4-CVE-2026-109618-109619), exported with git format-patch.
+# - php-7.4-CVE-2026-126714.patch (session files are emptied before every
+#   write): upstream's PHP 8.2.36 fix, php-src 41c0941a, cherry-picked onto
+#   7.4.33 after the php2shell patch. There is no upstream 7.4 release of it;
+#   the patch's message says what the backport changed.
+#
+# The php2shell patch changes inline code in Zend headers (HT_HASH_RESET, the
+# zend_multiply.h overflow checks), so every extension is built on this stage,
+# against those headers, rather than taken from Alpine's php7-* packages, built
+# for Alpine's own PHP.
 #
 # This is a bridge until babble_web moves to PHP 8 (babble_web#1162).
 FROM php:7.4.33-fpm-alpine3.15@sha256:6e48c96408fe0835a0f8bd736692721f222aeac4cff0de102780687a768eb55c AS php-patched
@@ -29,7 +36,7 @@ RUN set -eux; \
     echo "924846abf93bc613815c55dd3f5809377813ac62a9ec4eb3778675b82a27b927 */usr/src/php.tar.xz" | sha256sum -c -; \
     docker-php-source extract; \
     cd /usr/src/php; \
-    patch -p1 < /usr/src/patches/php-7.4-CVE-2026-109618-109619.patch; \
+    for p in /usr/src/patches/*.patch; do patch -p1 < "$p"; done; \
     gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)"; \
     ./configure --build="$gnuArch" --with-config-file-path="$PHP_INI_DIR" \
         --with-config-file-scan-dir="$PHP_INI_DIR/conf.d" --enable-option-checking=fatal \
@@ -80,7 +87,16 @@ RUN set -eux; \
     php -c /etc/php/php.ini -r 'foreach (["bcmath", "calendar", "gd", "intl", "pdo_mysql", "sockets", "sodium"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing $e\n"); exit(1); }'; \
     php-fpm -c /etc/php/php.ini -y /etc/php/php-fpm.conf -t; \
     rm -f /var/log/php-fpm.log; \
-    composer --version
+    composer --version; \
+    # CVE-2026-126714: a session write cut short (here by a 1 KB file size
+    # limit) must not leave the tail of the longer session it replaced. Without
+    # the patch the file ends up as the new session's start and the old one's end.
+    d="$(mktemp -d)"; \
+    php -c /etc/php/php.ini -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("A", 4096);'; \
+    (ulimit -f 2; php -c /etc/php/php.ini -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("B", 8192);' >/dev/null 2>&1) || :; \
+    grep -q B "$d/sess_t"; \
+    if grep -q A "$d/sess_t"; then echo "CVE-2026-126714: a cut-short session write kept the old session's tail" >&2; exit 1; fi; \
+    rm -rf "$d"
 
 WORKDIR /usr/share/nginx/html
 

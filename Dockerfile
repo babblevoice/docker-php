@@ -92,10 +92,12 @@ RUN set -eux; \
     # CVE-2026-126714: a session write cut short (here by a 1 KB file size
     # limit) must not leave the tail of the longer session it replaced. Without
     # the patch the file ends up as the new session's start and the old one's end.
+    # The session settings are given here so php.ini changes can't skip the check.
     d="$(mktemp -d)"; \
-    php -c /etc/php/php.ini -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("A", 4096);'; \
-    (ulimit -f 2; php -c /etc/php/php.ini -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("B", 8192);' >/dev/null 2>&1) || :; \
-    grep -q B "$d/sess_t"; \
+    php -c /etc/php/php.ini -d session.save_handler=files -d session.use_strict_mode=0 -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("A", 4096);'; \
+    (ulimit -f 2; php -c /etc/php/php.ini -d session.save_handler=files -d session.use_strict_mode=0 -d session.save_path="$d" -r 'session_id("t"); session_start(); $_SESSION["s"] = str_repeat("B", 8192);' >/dev/null 2>&1) || :; \
+    b="$(tr -cd B < "$d/sess_t" | wc -c)"; \
+    if [ "$b" -eq 0 ] || [ "$b" -ge 8192 ]; then echo "CVE-2026-126714 check: the session write was not cut short ($b of 8192 bytes written)" >&2; exit 1; fi; \
     if grep -q A "$d/sess_t"; then echo "CVE-2026-126714: a cut-short session write kept the old session's tail" >&2; exit 1; fi; \
     rm -rf "$d"
 

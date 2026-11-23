@@ -24,7 +24,7 @@ The CVE-2026-126714 backport changes one: if PHP cannot empty a session file bef
 
 The CVE-2026-129289 backport changes nothing behind a front end that closes the FastCGI connection after each request, as nginx does unless `fastcgi_keep_conn` is on. With connection reuse, PHP-FPM now reads and discards whatever a script left unread of its request body before taking the next request, and closes the connection instead if the last request's input stopped part-way through a FastCGI record.
 
-To drop the patches once babble_web is on a supported PHP (babble_web#1162), base the stages on that version's official image again, delete the php-patched stage, `patches/` and the CVE-2026-126714 check at the end of the Dockerfile, and update the extension directory the app stage copies from.
+To drop the patches once babble_web is on a supported PHP (babble_web#1162), base the stages on that version's official image again, delete the php-patched stage and `patches/`, and update the extension directory the app stage copies from. The CVE-2026-126714 check at the end of the Dockerfile can stay: a fixed PHP passes it.
 
 ## Version
 

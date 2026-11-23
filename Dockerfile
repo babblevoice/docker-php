@@ -7,9 +7,10 @@
 #   own 7.4 backport, php-src commit 712e60f9edfd03f0960fc4fc3c2c375f42b90aa2
 #   (branch PHP-7.4-CVE-2026-109618-109619), exported with git format-patch.
 # - php-7.4-CVE-2026-126714.patch (session files are emptied before every
-#   write): upstream's PHP 8.2.36 fix, php-src 41c0941a, cherry-picked onto
-#   7.4.33 after the php2shell patch. There is no upstream 7.4 release of it;
-#   the patch's message says what the backport changed.
+#   write) and php-7.4-CVE-2026-129289.patch (PHP-FPM drains unread request
+#   bodies): upstream's PHP 8.2.36 fixes, php-src 41c0941a and 28014fd0,
+#   cherry-picked onto 7.4.33 after the php2shell patch. There is no upstream
+#   7.4 release of these; each patch's message says what the backport changed.
 #
 # The php2shell patch changes inline code in Zend headers (HT_HASH_RESET, the
 # zend_multiply.h overflow checks), so every extension is built on this stage,

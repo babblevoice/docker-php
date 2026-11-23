@@ -8,6 +8,7 @@ PHP 7.4 is end-of-life, so the image recompiles the official 7.4.33 image's PHP 
 
 - From 7.4.33-0.3.8, CVE-2026-109618 and CVE-2026-109619 (php2shell): the PHP security team's own 7.4 backport, `git format-patch -1 712e60f9` from php-src.
 - From 7.4.33-0.3.9, CVE-2026-126714: a session file is emptied before every write, so a write that is cut short can no longer leave part of the previous session behind for PHP to unserialise. Upstream fixed it in PHP 8.2.36 (php-src 41c0941a) and published no 7.4 fix; the patch is that commit cherry-picked onto 7.4.33, unaltered apart from its context.
+- From 7.4.33-0.3.9, CVE-2026-129289: PHP-FPM no longer lets unread bytes of one request's body be read as a new request on a connection the front end keeps open. Upstream fixed it in PHP 8.2.36 (php-src 28014fd0) and published no 7.4 fix; the patch is that commit cherry-picked onto 7.4.33, with its two tests using `strpos()` in place of `str_contains()`, which 7.4 does not have.
 
 Extensions must be built from this image (`docker-php-ext-install`), not copied in from another one, because the php2shell patch changes inline code in the Zend headers. Composer runs on the patched PHP too.
 
@@ -20,6 +21,8 @@ The php2shell backport changes three behaviours:
 - Session upload progress no longer works, whatever `session.upload_progress.enabled` says. That is the CVE-2026-109619 path.
 
 The CVE-2026-126714 backport changes one: if PHP cannot empty a session file before writing it, the write fails with an `ftruncate() failed` warning instead of going ahead. A write that is cut short still loses that request's session changes, but no longer leaves two sessions mixed in one file.
+
+The CVE-2026-129289 backport changes nothing behind a front end that closes the FastCGI connection after each request, as nginx does unless `fastcgi_keep_conn` is on. With connection reuse, PHP-FPM now reads and discards whatever a script left unread of its request body before taking the next request, and closes the connection instead if the last request's input stopped part-way through a FastCGI record.
 
 To drop the patches once babble_web is on a supported PHP (babble_web#1162), base the stages on that version's official image again, delete the php-patched stage, `patches/` and the CVE-2026-126714 check at the end of the Dockerfile, and update the extension directory the app stage copies from.
 

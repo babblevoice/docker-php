@@ -10,7 +10,7 @@ services:
       - ./www:/usr/share/nginx/html:rw
 
   php:
-    image: tinpotnick/php:7.4.33-0.3.8
+    image: tinpotnick/php:7.4.33-0.3.9
     volumes:
       - ./www:/usr/share/nginx/html:rw
 

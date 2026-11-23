@@ -1,5 +1,7 @@
 # PHP Docker image
 
+![Nightly tests](https://github.com/babblevoice/docker-php/actions/workflows/nightly.yml/badge.svg)
+
 Simple build for docker with additional modules from source. Examples for compose etc on usage.
 
 ## PHP 7.4 security patch
@@ -18,7 +20,7 @@ To drop the patch once babble_web is on a supported PHP (babble_web#1162), base 
 
 ## Version
 
-Build versions are tracked using semver. Major.minor.bug.
+The version is plain semver, `Major.minor.bug`, and it is this image's version, not PHP's: the tag `vX.Y.Z` publishes `tinpotnick/php:X.Y.Z`. It carries on from the old numbers. Up to 0.3.8 the PHP version was written in front of ours (the tag `v7.4.33-0.3.8` published `tinpotnick/php:7.4.33-0.3.8`); the next release is `v0.3.9`, published as `tinpotnick/php:0.3.9`.
 
 ### Major
 
@@ -34,11 +36,29 @@ See Dockerfile for the list of added modules.
 
 No new feature - bug fix update.
 
-## Build
+### Which PHP a version carries
 
-This will build x86 and arm. The version number is `<phpversion>-<thisbuildversion>`.
+The tag no longer says, so it is recorded in three places:
+
+- this README: PHP 7.4.33 since 0.3.8, with the patches listed above;
+- each release's notes on GitHub, where whoever cuts the release says which PHP it carries ([AGENTS.md](AGENTS.md) says how);
+- the image itself. The official image it is built on sets `PHP_VERSION` in its environment, and `php -v` prints it (the patches don't change either):
 
 ```sh
-docker buildx prune
-docker buildx build --platform linux/amd64,linux/arm64 -t tinpotnick/php:7.4.33-0.3.8 . --push
+docker image inspect tinpotnick/php:0.3.9 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep PHP_VERSION
+```
+
+## Build
+
+A release tag is the only thing that publishes an image. `.github/workflows/release.yml` builds it for amd64 and arm64, each on its own native runner, starts it and has php-fpm run a script, then pushes `tinpotnick/php:X.Y.Z` and nothing else: no `latest`, no `main`, no `sha-…`. [AGENTS.md](AGENTS.md) has the rules: who may tag what, the run before a pull request, and hotfixes.
+
+```sh
+git tag v0.3.9-rc.1 && git push origin v0.3.9-rc.1   # a pre-release, to try out
+git tag v0.3.9 && git push origin v0.3.9             # a full release
+```
+
+To build one to try, for the platform you are on, into your local Docker and pushing nothing:
+
+```sh
+docker build -t docker-php:test .
 ```
